@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+
+import sys
+
+def getTokens( inf ) :
+    # word up!
+    for lt in [ line.split() for line in inf ] :
+        if not lt :
+            continue
+        for t in lt :
+            yield t
+
+S_MAX = 80
+s_min = 20
+
+i = 0
+inventory = S_MAX
+mu_sum = 0.      # setup */
+l_plus_sum = 0.  # holding */
+l_minus_sum = 0. # shortage */
+order_sum = 0.   # mu */
+demand_sum = 0.
+
+data = open( sys.argv[1] if len(sys.argv) > 1 else "/dev/null" )
+tokens = iter(getTokens(data))
+
+try :
+    while True :
+
+        d_i = int(next(data))  # breaks loop after last d_i read
+        i += 1
+
+        # Not considered on first pass through loop due to 
+        # inventory initial value
+        #
+        # technically this is inventory is l_{i-1}
+        if  inventory < s_min :
+            # order! 
+            o_i_minus_1 = S_MAX - inventory
+            mu_sum += 1
+            order_sum += o_i_minus_1
+            # speedy delivery to you
+            inventory += o_i_minus_1
+
+        demand_sum += d_i
+
+        if inventory > d_i :
+            # plenty of cars (area of trapezoid) 
+            l_plus_sum += (inventory - d_i/2.0)
+        else :
+            # back-ordering (areas of similar triangles 
+            l_plus_sum += inventory**2 / (2*d_i)
+            l_minus_sum += (d_i-inventory)**2 / (2*d_i)
+
+        # l_i inventory 
+        inventory -= d_i
+
+except StopIteration :
+    pass
+except :
+    raise
+
+# flow balanced system!
+if inventory < S_MAX :
+    order_sum += S_MAX - inventory
+    mu_sum += 1
+
+if i :
+    print( i, "intervals S=", S_MAX, " s=", s_min )
+    print( "average demand    ", (demand_sum/i) )
+    print( "average order     ", (order_sum/i) )
+    print( "setup frequency   ", (mu_sum/i) )
+    print( "average holding   ", (l_plus_sum/i) )
+    print( "average shortage  ", (l_minus_sum/i) )
+
+data.close()
+sys.exit(0)
+
